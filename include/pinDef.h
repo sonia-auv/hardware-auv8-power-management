@@ -5,7 +5,10 @@
 //              BOARD PIN DEFINITION
 //###################################################
 
-//Declare all hardware pins definition
+#define SPI_MOSI PB_5
+#define SPI_MISO PB_4
+#define SPI_SCLK PB_3
+#define SPI_CS PA_4
 
 //###################################################
 //              RS485 PIN DEFINITION
