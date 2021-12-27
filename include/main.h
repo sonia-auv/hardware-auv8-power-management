@@ -9,7 +9,7 @@
 #include "PCA9531/PCA9531.h"
 #include "RS485/RS485.h"
 #include "RS485/RS485_definition.h"
-#include "INA229/INA229.h"
+// #include "INA229/INA229.h"
 
 #define CONFIG_SET (0x01 << 4)
 #define CONFIG_ADC_SET 0xFB6B
