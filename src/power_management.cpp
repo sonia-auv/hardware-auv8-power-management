@@ -82,8 +82,12 @@ int main()
         fan[i] = 0;
     }
 
-    uint8_t i = 0;
+    spi.format(8, 1);
+    spi.frequency(1000000);
+    spi_sd.format(8, 1);
+    spi_sd.frequency(1000000);
 
+    uint8_t i = 0;
     while(i < nb_12v + nb_motor)
     {
         sensor[i].setConfig(CONFIG_SET);
