@@ -1,5 +1,16 @@
-#ifndef MAIN_H
-#define MAIN_H
+/**
+ * @file power_management.h
+ * @author Francis Alonzo (francisalonzo29@gmail.com)
+ * @brief Power Management
+ * @version 0.1
+ * @date 2022-01-17
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+#ifndef POWER_MANAGEMENT_H
+#define POWER_MANAGEMENT_H
 
 #include "rtos.h"
 #include "mbed.h"
@@ -26,7 +37,7 @@
 #define nb_motor 8
 #define nb_12v 2
 #define nb_fan 2
-#define nb_cs_address 4
+#define nb_cs_adress 4
 
 //###################################################
 //             PINOUT FONCTION DEFINITION
@@ -38,7 +49,7 @@ PwmOut pwm[nb_motor] = {PwmOut(PWM1), PwmOut (PWM2), PwmOut(PWM3), PwmOut(PWM4),
 DigitalOut enable_motor[nb_motor] = {DigitalOut(MTR1), DigitalOut(MTR2), DigitalOut(MTR3), DigitalOut(MTR4), 
     DigitalOut(MTR5), DigitalOut(MTR6), DigitalOut(MTR7), DigitalOut(MTR8)};
 
-DigitalOut cs_address[nb_cs_address] = {DigitalOut(A0), DigitalOut(A1), DigitalOut(A2), DigitalOut(A3)};
+DigitalOut cs_address[nb_cs_adress] = {DigitalOut(A0), DigitalOut(A1), DigitalOut(A2), DigitalOut(A3)};
 
 DigitalOut fan[nb_fan] = {DigitalOut(FAN1), DigitalOut(FAN2)};
 
@@ -66,7 +77,7 @@ DigitalIn alert[nb_motor + nb_12v] = {DigitalIn(ALERT1), DigitalIn(ALERT2), Digi
 
 DigitalIn send_sd_rs(SEND_SD_RS);
 DigitalIn send_to_sd(SEND_TO_SD);
-
+DigitalIn kill_input(KILL_3V3);
 DigitalIn pwm_stop(PWM_STOP);
 
 //###################################################
@@ -74,6 +85,7 @@ DigitalIn pwm_stop(PWM_STOP);
 //###################################################
 
 SPI spi(MOSI, MISO, SCLK);
+SPI spi_sd(MOSI_SD, MISO_SD, SCLK_SD);
 RS485 rs485(SLAVE_PSU0);
 I2C i2c_bus(I2C_SDA, I2C_SCL);
 PCA9531 ledDriver1(&i2c_bus, LED_DRIVER1);
@@ -83,8 +95,24 @@ PCA9531 ledDriver2(&i2c_bus, LED_DRIVER2);
 //             THREAD DEFINITION
 //###################################################
 
+Thread readSensor;
+Thread readMotorStatus;
+Thread emergencyStop;
+Thread pwmController;
+Thread fanController;
+
 //###################################################
 //             VARIABLES DEFINITION
 //###################################################
+
+uint8_t fault_detection[nb_motor] = {0};
+uint8_t enable_motor_data[nb_motor] = {0};
+
+//###################################################
+//             FUNCTIONS DEFINITION
+//###################################################
+
+void led_feedbackFunction(double_t batt1, double_t batt2);
+
 
 #endif

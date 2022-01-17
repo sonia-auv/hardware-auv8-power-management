@@ -56,17 +56,20 @@
 #define PWM6 PD_14
 #define PWM2 PD_15
 
-#define RED_TRISTATE PE_2
+#define RED_TRISTATE PE_1
+#define SCLK PE_2
 #define GREEN_TRISTATE PE_3
 #define YELLOW_TRISTATE PE_4
+#define MISO PE_5
+#define MOSI PE_6
 #define FAN1 PE_7
 #define ALERT9 PE_8
 #define ALERT10 PE_9
 #define MTR5 PE_10
 #define STATUS5 PE_11
-#define SCLK PE_12
-#define MISO PE_13
-#define MOSI PE_14
+#define SCLK_SD PE_12
+#define MISO_SD PE_13
+#define MOSI_SD PE_14
 #define ALERT5 PE_15
 
 //###################################################
