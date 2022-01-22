@@ -39,11 +39,13 @@
 #define nb_fan 2
 #define nb_cs_adress 4
 
+typedef uint8_t flags_t;
+
 //###################################################
 //             PINOUT FONCTION DEFINITION
 //###################################################
 
-PwmOut pwm[nb_motor] = {PwmOut(PWM1), PwmOut (PWM2), PwmOut(PWM3), PwmOut(PWM4), 
+PwmOut pwm[nb_motor] = {PwmOut(PWM1), PwmOut(PWM2), PwmOut(PWM3), PwmOut(PWM4), 
     PwmOut(PWM5), PwmOut(PWM6), PwmOut(PWM7), PwmOut(PWM8)};
 
 DigitalOut enable_motor[nb_motor] = {DigitalOut(MTR1), DigitalOut(MTR2), DigitalOut(MTR3), DigitalOut(MTR4), 
@@ -77,7 +79,7 @@ DigitalIn alert[nb_motor + nb_12v] = {DigitalIn(ALERT1), DigitalIn(ALERT2), Digi
 
 DigitalIn send_sd_rs(SEND_SD_RS);
 DigitalIn send_to_sd(SEND_TO_SD);
-DigitalIn kill_input(KILL_3V3);
+InterruptIn kill_input(KILL_3V3);
 DigitalIn pwm_stop(PWM_STOP);
 
 //###################################################
@@ -96,6 +98,7 @@ PCA9531 ledDriver2(&i2c_bus, LED_DRIVER2);
 //###################################################
 
 Thread readSensor;
+Thread activateMotor;
 Thread readMotorStatus;
 Thread emergencyStop;
 Thread pwmController;
@@ -105,8 +108,11 @@ Thread fanController;
 //             VARIABLES DEFINITION
 //###################################################
 
-uint8_t fault_detection[nb_motor] = {0};
+int8_t fault_detection[nb_motor] = {0};
+uint8_t status_data[nb_motor] = {0};
 uint8_t enable_motor_data[nb_motor] = {0};
+
+flags_t killswitch = 0;
 
 //###################################################
 //             FUNCTIONS DEFINITION

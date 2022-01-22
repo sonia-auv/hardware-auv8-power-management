@@ -11,14 +11,105 @@
 
 #include "power_management.h"
 
-//Insert all function thread here
-void threadFunction()
+void killRiseCallback()
 {
-  //Declaration, only put one command per thread
-  while(1)
-  {
-    //rs.read, action & rs.write
-  }
+    ++killswitch;
+}
+
+void killFallCallback()
+{
+    --killswitch;
+}
+
+void activateMotorCallback()
+{
+    uint8_t cmd_array[1] = {CMD_ACT_MOTOR};
+    uint8_t receive[255];
+    uint8_t nb_cmd = 1;
+    uint8_t size_cmd = nb_motor;
+
+    while(true)
+    {
+        if(rs485.read(cmd_array, nb_cmd, receive) == size_cmd)
+        {
+            for(uint8_t i = 0; i < nb_motor; ++i)
+            {
+                enable_motor_data[i] = receive[i] & 0x01;
+            }
+        }
+    }
+}
+
+void readMotorStatusCallback()
+{
+    uint8_t cmd_array[1] = {CMD_READ_MOTOR};
+    uint8_t send[255] = {0};
+    uint8_t nb_bytes = nb_motor;
+
+    while(true)
+    {
+        for(uint8_t i = 0; i < nb_motor; ++i)
+        {
+            status_data[i] = ~(status_motor[i]) & 0x01;
+            
+            if(status_data[i]) fault_detection[i] = 0x02; // Real value -0x01 tbd with the led system
+            else fault_detection[i] = enable_motor_data[i];
+
+            send[i] = (uint8_t) fault_detection[i];
+        }
+        rs485.write(SLAVE_PSU0, cmd_array[0], nb_bytes, send);
+        ThisThread::sleep_for(1000);
+    }
+}
+
+void emergencyStopCallback()
+{
+    while(true)
+    {
+        for(uint8_t i = 0; i < nb_motor; ++i)
+        {
+            if(killswitch && fault_detection[i] != 0x02)
+            {
+                enable_motor[i] = enable_motor_data[i];
+            }
+            else
+            {
+                enable_motor[i] = 0x00;
+            }
+        }
+        ThisThread::sleep_for(200);
+    }
+}
+
+void pwmControllerCallback()
+{
+    uint8_t cmd_array[1] = {CMD_PWM};
+    uint8_t pwm_received[255];
+    uint8_t nb_command = 1;
+    uint8_t size_command = 16;
+    uint16_t data_pwm = 0;
+
+    while(true)
+    {
+        if(rs485.read(cmd_array, nb_command, pwm_received) == size_command)
+        {
+            for(uint8_t i=0; i<nb_motor; ++i)
+            {
+                if(kill_input == 0)
+                {
+                    data_pwm = pwm_received[(2*i)+1]+pwm_received[2*i]*256;
+                    if(data_pwm >= MIN_PWM && data_pwm <= MAX_PWM)
+                    {
+                        pwm[i].pulsewidth_us(data_pwm);
+                    }
+                }
+                else
+                {
+                    pwm[i].pulsewidth_us(NEUTRAL_PWM);
+                }
+            }
+        }
+    }
 }
 
 void led_feedbackFunction(double_t batt1, double_t batt2)
@@ -56,7 +147,7 @@ void led_feedbackFunction(double_t batt1, double_t batt2)
     }
 
     // Kill
-    if(kill_input.read() == 0) kill_led = 1;
+    if(killswitch == 0) kill_led = 1;
     else kill_led = 0;
 
     ledDriver1.setLEDs((stateBattery1 << 8) | stateBattery2);
@@ -106,4 +197,20 @@ int main()
     red_tristate = 0;
     yellow_tristate = 1;
     green_tristate = 0;
+
+    kill_input.rise(&killRiseCallback);
+    kill_input.fall(&killFallCallback);
+
+    readMotorStatus.start(readMotorStatusCallback);
+    readMotorStatus.set_priority(osPriorityHigh);
+
+    emergencyStop.start(emergencyStopCallback);
+    emergencyStop.set_priority(osPriorityHigh1);
+
+    pwmController.start(pwmControllerCallback);
+    pwmController.set_priority(osPriorityHigh);
+
+    red_tristate = 0;
+    yellow_tristate = 0;
+    green_tristate = 1;
 }
