@@ -200,6 +200,7 @@ int main()
 
     kill_input.rise(&killRiseCallback);
     kill_input.fall(&killFallCallback);
+    kill_input.enable_irq();
 
     readMotorStatus.start(readMotorStatusCallback);
     readMotorStatus.set_priority(osPriorityHigh);
