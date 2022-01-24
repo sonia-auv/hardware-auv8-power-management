@@ -21,9 +21,10 @@ void threadFunction()
  
 int main()
 {
+  chip_select = 1;
   INA229 device(&spi, &chip_select);
-  spi.format(8, 1);
-  spi.frequency(100000);
+  spi.format(8, 1); // Mode 1
+  spi.frequency(1000000);
 
   device.setConfig(CONFIG_SET);
   if(device.getConfig() == CONFIG_SET) (led2.read()) ? led2 = 0 : led2 = 1;
