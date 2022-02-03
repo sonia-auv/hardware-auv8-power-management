@@ -13,14 +13,15 @@
 #define A0 PA_5
 #define LATCH_DEMUX PA_6
 #define A2 PA_7
+#define I2C_SCL PA_8
 
 #define SEND_SD_RS PB_0
 #define SEND_TO_SD PB_1
 #define PWM_STOP PB_2
 #define ALERT8 PB_4
 #define KILL_3V3 PB_5
-#define I2C_SCL PB_6
-#define I2C_SDA PB_7
+#define I2C2_SCL PB_6
+#define I2C2_SDA PB_7
 #define FAN2 PB_8
 #define KILL_ENABLE PB_9
 #define MTR1 PB_10
@@ -34,7 +35,7 @@
 #define PWM7 PC_6
 #define PWM3 PC_7
 #define PWM8 PC_8
-#define PWM4 PC_9
+#define PWM4_I2C_SDA PC_9
 #define MTR3 PC_10
 #define STATUS3 PC_11
 #define ALERT3 PC_12
@@ -60,7 +61,7 @@
 #define SCLK PE_2
 #define GREEN_TRISTATE PE_3
 #define YELLOW_TRISTATE PE_4
-#define MISO PE_5
+#define MISO_PWM4 PE_5
 #define MOSI PE_6
 #define FAN1 PE_7
 #define ALERT9 PE_8
@@ -81,6 +82,6 @@
 
 #define RS485_TE_PIN PA_12
 #define RS485_DE_PIN PA_11
-#define RS485_RE_PIN PA_8
+#define RS485_RE_PIN PC_0
 
 #endif

@@ -173,11 +173,6 @@ int main()
         fan[i] = 0;
     }
 
-    spi.format(8, 1);
-    spi.frequency(1000000);
-    spi_sd.format(8, 1);
-    spi_sd.frequency(1000000);
-
     uint8_t i = 0;
     while(i < nb_12v + nb_motor)
     {
@@ -185,8 +180,8 @@ int main()
         sensor[i].setConfigADC(CONFIG_ADC_SET);
         sensor[i].setShuntCal(SHUNT_CALIBRATION);
         sensor[i].setCurrentLSB(CURRENT_LSB_CALIBRATION);
-        if(sensor[i].getConfig() == CONFIG_SET || sensor[i].getConfigADC() == CONFIG_ADC_SET ||
-            sensor[i].getShuntCal() == SHUNT_CALIBRATION || sensor[i].getCurrentLSB() == CURRENT_LSB_CALIBRATION) ++i;
+        if(sensor[i].getConfig() == CONFIG_SET && sensor[i].getConfigADC() == CONFIG_ADC_SET &&
+            sensor[i].getShuntCal() == SHUNT_CALIBRATION && sensor[i].getCurrentLSB() == CURRENT_LSB_CALIBRATION) ++i;
     }
 
     reset_led = 1;

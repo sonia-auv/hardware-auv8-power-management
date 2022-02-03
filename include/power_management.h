@@ -20,8 +20,8 @@
 #include "PCA9531/PCA9531.h"
 #include "RS485/RS485.h"
 #include "RS485/RS485_definition.h"
-#include "SD_Card/sd_card.h"
-// #include "INA229/INA229.h"
+// #include "SD_Card/sd_card.h"
+#include "INA228/INA228.h"
 
 #define CONFIG_SET (0x01 << 4)
 #define CONFIG_ADC_SET 0xFB6B
@@ -46,7 +46,7 @@ typedef uint8_t flags_t;
 //             PINOUT FONCTION DEFINITION
 //###################################################
 
-PwmOut pwm[nb_motor] = {PwmOut(PWM1), PwmOut(PWM2), PwmOut(PWM3), PwmOut(PWM4), 
+PwmOut pwm[nb_motor] = {PwmOut(PWM1), PwmOut(PWM2), PwmOut(PWM3), PwmOut(MISO_PWM4), 
     PwmOut(PWM5), PwmOut(PWM6), PwmOut(PWM7), PwmOut(PWM8)};
 
 DigitalOut enable_motor[nb_motor] = {DigitalOut(MTR1), DigitalOut(MTR2), DigitalOut(MTR3), DigitalOut(MTR4), 
@@ -87,12 +87,17 @@ DigitalIn pwm_stop(PWM_STOP);
 //             OBJECTS DEFINITION
 //###################################################
 
-SPI spi(MOSI, MISO, SCLK);
-SPI spi_sd(MOSI_SD, MISO_SD, SCLK_SD);
+// SPI spi(MOSI, MISO, SCLK);
+// SPI spi_sd(MOSI_SD, MISO_SD, SCLK_SD);
 RS485 rs485(SLAVE_PSU0);
-I2C i2c_bus(I2C_SDA, I2C_SCL);
+I2C i2c_bus(PWM4_I2C_SDA, I2C_SCL);
+I2C i2c2_bus(I2C2_SDA, I2C2_SCL);
 PCA9531 ledDriver1(&i2c_bus, LED_DRIVER1);
 PCA9531 ledDriver2(&i2c_bus, LED_DRIVER2);
+
+INA228 sensor[nb_motor+nb_12v] = {INA228(&i2c_bus, M1_ADRESS), INA228(&i2c_bus, M2_ADRESS), INA228(&i2c_bus, M3_ADRESS), 
+    INA228(&i2c_bus, M4_ADRESS), INA228(&i2c_bus, M5_ADRESS), INA228(&i2c_bus, M6_ADRESS), INA228(&i2c_bus, M7_ADRESS), 
+    INA228(&i2c_bus, M8_ADRESS), INA228(&i2c_bus, ACC1_ADRESS), INA228(&i2c_bus, ACC2_ADRESS)};
 
 //###################################################
 //             THREAD DEFINITION
