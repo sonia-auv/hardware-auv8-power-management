@@ -95,7 +95,7 @@ void pwmControllerCallback()
         {
             for(uint8_t i=0; i<nb_motor; ++i)
             {
-                if(kill_input == 0)
+                if(kill_input == 0 && pwm_stop == 0)
                 {
                     data_pwm = pwm_received[(2*i)+1]+pwm_received[2*i]*256;
                     if(data_pwm >= MIN_PWM && data_pwm <= MAX_PWM)

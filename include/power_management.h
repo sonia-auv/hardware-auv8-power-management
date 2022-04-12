@@ -87,8 +87,6 @@ DigitalIn pwm_stop(PWM_STOP);
 //             OBJECTS DEFINITION
 //###################################################
 
-// SPI spi(MOSI, MISO, SCLK);
-// SPI spi_sd(MOSI_SD, MISO_SD, SCLK_SD);
 RS485 rs485(SLAVE_PSU0);
 I2C i2c_bus(PWM4_I2C_SDA, I2C_SCL);
 I2C i2c2_bus(I2C2_SDA, I2C2_SCL);
