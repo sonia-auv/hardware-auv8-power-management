@@ -21,15 +21,32 @@ void threadFunction()
  
 int main()
 {
-  chip_select = 1;
-  INA229 device(&spi, &chip_select);
-  spi.format(8, 1); // Mode 1
-  spi.frequency(500000);
 
-  uint16_t tmp = device.getID();
-  if(tmp != 0) (led2.read()) ? led2 = 0 : led2 = 1;
-  tmp = device.getManufacturer();
-  if(tmp != 0) (led2.read()) ? led2 = 0 : led2 = 1;
+
+  pwm.period_us(2000);
+  pwm.pulsewidth_us(NEUTRAL_PWM);
+  in = 1;
+
+  ThisThread::sleep_for(5000);
+
+  pwm.pulsewidth_us(1600);
+
+  ThisThread::sleep_for(1000);
+
+  pwm.pulsewidth_us(NEUTRAL_PWM);
+  in = 0;
+
+  led2 = 1;
+
+  // chip_select = 1;
+  // INA229 device(&spi, &chip_select);
+  // spi.format(8, 1); // Mode 1
+  // spi.frequency(500000);
+
+  // uint16_t tmp = device.getID();
+  // if(tmp != 0) (led2.read()) ? led2 = 0 : led2 = 1;
+  // tmp = device.getManufacturer();
+  // if(tmp != 0) (led2.read()) ? led2 = 0 : led2 = 1;
 
   // device.setConfig(CONFIG_SET);
   // if(device.getConfig() == CONFIG_SET) (led2.read()) ? led2 = 0 : led2 = 1;

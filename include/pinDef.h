@@ -10,6 +10,9 @@
 #define SPI_SCLK PE_2
 #define SPI_CS PE_4
 
+#define IN PF_15
+#define PWM_OUT PE_13
+
 //###################################################
 //              RS485 PIN DEFINITION
 //###################################################

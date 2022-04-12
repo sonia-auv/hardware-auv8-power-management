@@ -23,4 +23,7 @@ SPI spi(SPI_MOSI, SPI_MISO, SPI_SCLK);
 DigitalOut chip_select(SPI_CS);
 DigitalOut led2(LED2);
 
+PwmOut pwm(PWM_OUT);
+DigitalOut in(IN);
+
 #endif
