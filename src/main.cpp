@@ -6,78 +6,49 @@
 
 #include "main.h"
 
-//Declaration of threads
-Thread thread;
-
-//Insert all function thread here
-void threadFunction()
-{
-  //Declaration, only put one command per thread
-  while(1)
-  {
-    //rs.read, action & rs.write
-  }
-}
- 
 int main()
 {
-
-
+  // Init l'ESC
   pwm.period_us(2000);
   pwm.pulsewidth_us(NEUTRAL_PWM);
-  in = 1;
+  in = 0;
+  led2 = 0;
+  led3 = 0;
+  ThisThread::sleep_for(1000);
 
+  // Allumage du moteur
+  in = 1;
   ThisThread::sleep_for(5000);
 
-  pwm.pulsewidth_us(1600);
+  // Test #1 : Puissance maximale compé durant 10 mins
+  pwm.pulsewidth_us(1800);
+  for (uint8_t i = 0; i < 10; ++i)
+  {
+    ThisThread::sleep_for(60000); // Sleep 60 secondes
+    led3 = !(led3);
+  }
 
-  ThisThread::sleep_for(1000);
+  // // Test #2 : Puissance maximale moteur 30 sec ON / 30 sec OFF
+  // for (uint8_t i = 0; i < 10; ++i)
+  // {
+  //   pwm.pulsewidth_us(1900);
+  //   ThisThread::sleep_for(30000); // Sleep 30 sec
+  //   led3 = !(led3);
+  //   pwm.pulsewidth_us(1500);
+  //   ThisThread::sleep_for(30000); // Sleep 30 sec
+  //   led3 = !(led3);
+  // }
 
+  // // Test #3 : Puissance maximale moteur - Test destructif
+  // pwm.pulsewidth_us(1900);
+  // for (uint8_t i = 0; i < 10; ++i) // Ne devrait pas être en mesure de finir avant la fin
+  // {
+  //   ThisThread::sleep_for(60000); // Sleep 1 minute  
+  // }
+
+  // Test terminé
   pwm.pulsewidth_us(NEUTRAL_PWM);
   in = 0;
-
   led2 = 1;
-
-  // chip_select = 1;
-  // INA229 device(&spi, &chip_select);
-  // spi.format(8, 1); // Mode 1
-  // spi.frequency(500000);
-
-  // uint16_t tmp = device.getID();
-  // if(tmp != 0) (led2.read()) ? led2 = 0 : led2 = 1;
-  // tmp = device.getManufacturer();
-  // if(tmp != 0) (led2.read()) ? led2 = 0 : led2 = 1;
-
-  // device.setConfig(CONFIG_SET);
-  // if(device.getConfig() == CONFIG_SET) (led2.read()) ? led2 = 0 : led2 = 1;
-  
-  // ThisThread::sleep_for(1000);  
-
-  // device.setConfigADC(CONFIG_ADC_SET);
-  // if(device.getConfigADC() == CONFIG_ADC_SET) (led2.read()) ? led2 = 0 : led2 = 1;
-
-  // ThisThread::sleep_for(1000);
-
-  // device.setShuntCal(SHUNT_CALIBRATION);
-  // if(device.getShuntCal() == SHUNT_CALIBRATION) (led2.read()) ? led2 = 0 : led2 = 1;
-
-  // ThisThread::sleep_for(1000);
-
-  // device.setBOVL(OVERVOLTAGE_BUS_THRESHOLD);
-  // if(device.getBOVL() == OVERVOLTAGE_BUS_THRESHOLD) (led2.read()) ? led2 = 0 : led2 = 1;
-
-  // ThisThread::sleep_for(1000);
-
-  // device.setBUVL(UNDERVOLTAGE_BUS_THRESHOLD);
-  // if(device.getBUVL() == UNDERVOLTAGE_BUS_THRESHOLD) (led2.read()) ? led2 = 0 : led2 = 1;
-
-  // ThisThread::sleep_for(1000);
-
-  // device.setOverTempLimit(OVERTEMPERATURE_THRESHOLD);
-  // if(device.getOverTempLimit() == OVERTEMPERATURE_THRESHOLD) (led2.read()) ? led2 = 0 : led2 = 1;
-
-  ThisThread::sleep_for(1000);
-
-  thread.start(threadFunction);
-  thread.set_priority(osPriorityHigh);
+  led3 = 0;
 }
