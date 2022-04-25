@@ -69,14 +69,20 @@ int main()
   //   pwm_send += 50;
   // }
 
-  // Test #5 : Valeur température finale pour la puissance observée
-  pwm.pulsewidth_us(1725);
-  for (uint8_t i = 0; i < 10; ++i) // Ne devrait pas être en mesure de finir avant la fin
-  {
-    ThisThread::sleep_for(60000); // Sleep 1 minute  
-  }
+  // // Test #5 : Valeur température finale pour la puissance observée
+  // pwm.pulsewidth_us(1900);
+  // for (uint8_t i = 0; i < 10; ++i) // Ne devrait pas être en mesure de finir avant la fin
+  // {
+  //   ThisThread::sleep_for(60000); // Sleep 1 minute  
+  // }
 
-  // // Test #5 : Puissance maximale moteur - Test destructif
+  // Test #6 : Test pour éteindre avec un PWM
+  pwm.pulsewidth_us(1900);
+  ThisThread::sleep_for(5000);
+  in = 0;
+  ThisThread::sleep_for(5000);
+
+  // // Test #7 : Puissance maximale moteur - Test destructif
   // pwm.pulsewidth_us(1900);
   // for (uint8_t i = 0; i < 10; ++i) // Ne devrait pas être en mesure de finir avant la fin
   // {
