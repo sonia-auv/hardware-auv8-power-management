@@ -5,19 +5,24 @@
 //              ADDRESS DEFINITION
 //###################################################
 
-#define M1_ADRESS 0x40
-#define M2_ADRESS 0x41
-#define M3_ADRESS 0x42
-#define M4_ADRESS 0x43
-#define M5_ADRESS 0x44
-#define M6_ADRESS 0x45
-#define M7_ADRESS 0x46
-#define M8_ADRESS 0x47
+#define LED_DRIVER1 (0x60<<1)
+#define LED_DRIVER2 (0x61<<1)
 
-#define ACC1_ADRESS 0x4C
-#define ACC2_ADRESS 0x4D
+#define TEMP_1 (0x48<<1)
+#define TEMP_2 (0x4A<<1)
+#define TEMP_3 (0x4E<<1)
 
-#define LED_DRIVER1 0x60
-#define LED_DRIVER2 0x61
+#define I2C_M1 (0x40<<1)
+#define I2C_M2 (0x41<<1)
+#define I2C_M3 (0x40<<1)
+#define I2C_M4 (0x41<<1)
+#define I2C_M5 (0x44<<1)
+#define I2C_M6 (0x45<<1)
+#define I2C_M7 (0x44<<1)
+#define I2C_M8 (0x45<<1)
+
+#define I2C_12V1 (0x4C<<1)
+#define I2C_12V2 (0x4C<<1)
+
 
 #endif
