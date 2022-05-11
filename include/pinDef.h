@@ -81,6 +81,6 @@
 
 #define RS485_TE_PIN PA_12
 #define RS485_DE_PIN PA_11
-#define RS485_RE_PIN PA_8
+#define RS485_RE_PIN PC_0
 
 #endif

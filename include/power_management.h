@@ -20,7 +20,7 @@
 #include "PCA9531/PCA9531.h"
 #include "RS485/RS485.h"
 #include "RS485/RS485_definition.h"
-#include "SD_Card/sd_card.h"
+//#include "SD_Card/sd_card.h"
 #include "INA228/INA228.h"
 
 #define CONFIG_SET (0x01 << 4)
@@ -51,6 +51,18 @@
 
 typedef uint8_t flags_t;
 
+typedef enum{
+    MOTOR_ON,
+    MOTOR_OFF,
+    MOTOR_FAILURE
+} motor_state_t;
+
+typedef enum{
+    LED_OFF,
+    LED_ON,
+    LED_PWM1,
+    LED_PWM2
+} led_state_t;
 //###################################################
 //             PINOUT FONCTION DEFINITION
 //###################################################
@@ -114,25 +126,52 @@ INA228 sensor[NB_MOTORS + NB_12V] = {INA228(&i2c_bus, I2C_M1), INA228(&i2c_bus, 
 Thread readSensor;
 Thread activateMotor;
 Thread readMotorStatus;
-Thread emergencyStop;
+Thread motorController;
 Thread pwmController;
 Thread fanController;
+Thread ledController;
 
 //###################################################
 //             VARIABLES DEFINITION
 //###################################################
 
 int8_t fault_detection[NB_MOTORS] = {0};
-uint8_t status_data[NB_MOTORS] = {0};
 
 //contains the motor activation status requested by the control, the actual satus
 //may be different if the kill switch is activated
-uint8_t enable_motor_request[NB_MOTORS] = {0};
 
-uint16_t data_pwm_request[NB_MOTORS] = {0};
+typedef struct {
+    uint8_t request[NB_MOTORS];
+    Mutex mutex;
+}enable_motor_request_t;
+
+enable_motor_request_t enable_motor_request;
+
+
+typedef struct {
+    uint8_t state[NB_MOTORS];
+    Mutex mutex;
+}motor_failure_state_t;
+
+motor_failure_state_t motor_failure_state;
+
+typedef struct {
+    motor_state_t state[NB_MOTORS];
+    Mutex mutex;
+}current_state_motors_t;
+current_state_motors_t motor_state;
+
+typedef struct {
+    double_t batt[NB_12V];
+    Mutex mutex;
+}current_battery_motors_t;
+current_battery_motors_t batt_state;
+
 
 Mutex mutexPWM;
 Mutex mutexStatusMotor;
+Mutex mutexEnableMotorRequest;
+Mutex mutexMotorState;
 
 //###################################################
 //             FUNCTIONS DEFINITION

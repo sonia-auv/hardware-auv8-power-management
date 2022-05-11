@@ -27,10 +27,13 @@ void receiveMotorEnableRequestCallback()
     {
         if(rs485.read(cmd_array, nb_cmd, receive) == size_cmd)
         {
+            enable_motor_request.mutex.lock();
             for(uint8_t i = 0; i < NB_MOTORS; ++i)
             {
-                enable_motor_request[i] = receive[i] & 0x01;
+                enable_motor_request.request[i] = receive[i] & 0x01;
             }
+            enable_motor_request.mutex.unlock();
+
         }
     }
 }
@@ -43,26 +46,33 @@ void readMotorStatusCallback()
 
     while(true)
     {
+        motor_failure_state.mutex.lock();
         for(uint8_t i = 0; i < NB_MOTORS; ++i)
         {
-            status_data[i] = ~(status_motor[i]) & 0x01;
-            send[i] = (status_data[i] == 1) ? 0x02 : 0x00; //if error detected, send 0x02, 0 otherwise
+            motor_failure_state.state[i] = ~(status_motor[i]) & 0x01;
+            send[i] = (motor_failure_state.state[i] == 1) ? 0x02 : 0x00; //if error detected, send 0x02, 0 otherwise
         }
+        motor_failure_state.mutex.unlock();
+
         rs485.write(SLAVE_PSU0, cmd_array[0], nb_bytes, send);
         ThisThread::sleep_for(1000);
     }
 }
 
-void emergencyStopCallback()
+
+void motorControllerCallback()
 {
 
     uint8_t error_status_motor[NB_MOTORS]= {0};
+    uint8_t enable_motor_request_copy[NB_MOTORS]= {0};
+    motor_state_t motor_state_copy[NB_MOTORS];
 
     while(true)
     {
-    
         //set pwm to neutral if kill switch activated
         if(!isKillSwitchActivated()){
+            //note pwmControllerCallback all ready check if the kill is
+            //activated, but it waits for a new message to arrive
             mutexPWM.lock();
             for(uint8_t i = 0; i< NB_MOTORS; i++){
                 pwm[i].pulsewidth_us(NEUTRAL_PWM);
@@ -71,23 +81,36 @@ void emergencyStopCallback()
         }
 
         //get status of all motor
-        mutexStatusMotor.lock();
-        for(uint8_t i = 0; i < NB_MOTORS; i++){
-            error_status_motor[i] = status_motor[i];
-        }
-        mutexStatusMotor.unlock();
+        motor_failure_state.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; i++){ error_status_motor[i] = motor_failure_state.state[i];}
+        motor_failure_state.mutex.unlock();
+
+        enable_motor_request.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; i++){ enable_motor_request_copy[i] = enable_motor_request.request[i];}
+        enable_motor_request.mutex.unlock();
+        
+
 
         //set enable status depending on the state of the kill stwitch and on the motor error code
         for(uint8_t i = 0; i < NB_MOTORS; ++i)
         {
-            if(isKillSwitchActivated() && error_status_motor[i]){  //set motor to requested state
-                enable_motor[i] = enable_motor_request[i];
-            }else{ //disable motor regardless of requested state
-                enable_motor[i] = 0x00;
+            if(isKillSwitchActivated()){
+                enable_motor[i] = 0;
+                motor_state_copy[i] = MOTOR_OFF;
+            }else if(error_status_motor[i]){
+                enable_motor[i] = 0;
+                motor_state_copy[i] = MOTOR_FAILURE;
+            }else{
+                enable_motor[i] = enable_motor_request_copy[i];
+                motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
             }
         }
 
-
+        motor_state.mutex.lock();
+        //for(int i=0; i<NB_MOTORS; i++)  {motor_state.state[i] = motor_state_copy[i];}
+         motor_state_t motor_state_tmp[NB_MOTORS]={MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_ON, MOTOR_FAILURE, MOTOR_OFF};
+        for(int i=0; i<NB_MOTORS; i++)  {motor_state.state[i] = motor_state_tmp[i];}
+        motor_state.mutex.unlock();
 
         ThisThread::sleep_for(200);
     }
@@ -108,7 +131,7 @@ void pwmControllerCallback()
             mutexPWM.lock();
             for(uint8_t i=0; i<NB_MOTORS; ++i)
             {
-                if(kill_input == 0)
+                if(!isKillSwitchActivated())
                 {
                     data_pwm = pwm_received[(2*i)+1]+pwm_received[2*i]*256;
                     if(data_pwm >= MIN_PWM && data_pwm <= MAX_PWM)
@@ -144,39 +167,61 @@ void readSensorCallback()
   uint8_t current_send[255]={0};
   uint8_t nb_sensor = NB_MOTORS+NB_12V;
   uint8_t nb_byte_send = 4*(nb_sensor);
-  double_t voltage, current, batt1 = 0, batt2 = 0;
+  double_t voltage, current, batt0 = 0, batt1 = 0;
 
   while(true)
   {
-    for(uint8_t i=0; i<nb_sensor; ++i)
-    {
-      check_mask(sensor[i]);
+    // for(uint8_t i=0; i<nb_sensor; ++i)
+    // {
+    //   check_mask(sensor[i]);
 
-      voltage = sensor[i].getBusVolt();
-      current = sensor[i].getCurrent();
+    //   voltage = sensor[i].getBusVolt();
+    //   current = sensor[i].getCurrent();
 
-      putFloatInArray(voltage_send, voltage, i*4);
-      putFloatInArray(current_send, current, i*4);
+    //   putFloatInArray(voltage_send, voltage, i*4);
+    //   putFloatInArray(current_send, current, i*4);
 
-      if(i == 8) batt1 = voltage;
-      if(i == 9) batt2 = voltage;
-    }
-    led_feedbackFunction(batt1, batt2);
+    //   if(i == 8) batt0 = voltage;
+    //   if(i == 9) batt1 = voltage;
+    // }
+    batt1 = 16.8;
+    batt0 =14;
+
+    batt_state.mutex.lock();
+    batt_state.batt[0]=batt0;
+    batt_state.batt[1]=batt1;
+    batt_state.mutex.unlock();
+
     rs485.write(SLAVE_PSU0, cmd_array[0], nb_byte_send, voltage_send);
     rs485.write(SLAVE_PSU0, cmd_array[1], nb_byte_send, current_send);
     ThisThread::sleep_for(500);
   }
 }
 
-uint16_t ledStatus(uint8_t led_nb, bool led_on)
+uint16_t ledStatus(uint8_t led_nb, led_state_t led_ctrl)
 {
-    uint8_t led_state = (led_on) ? 0b01 : 0b00;
+    uint8_t led_state;
+    switch (led_ctrl)
+    {
+    case LED_ON:
+        led_state = 0b01;
+        break;
+    case LED_PWM1:
+        led_state = 0b10;
+        break;
+    case LED_PWM2:
+        led_state = 0b11;
+        break;
+    default: //LED_OFF
+        led_state = 0b00;
+    }
+
     return led_state << (2*led_nb);
 }
 
 uint16_t led_getStateBattery(double_t batt, uint8_t battNumber)
 {
-    uint16_t stateBattery;
+    uint16_t ledCmd_batteries;
 
     //bat number should be 0 or 1 ONLY (not 1 or 2)
     if(battNumber > 1){
@@ -196,57 +241,81 @@ uint16_t led_getStateBattery(double_t batt, uint8_t battNumber)
     uint8_t* pos = LED_POSITION[battNumber];
 
     // Batteries
-    if(batt > 16.4)                       {stateBattery = ledStatus(pos[0],false) | ledStatus(pos[1],true)  | ledStatus(pos[2],true)  | ledStatus(pos[3],true);} // | XXX:
-    else if (batt <= 16.4 && batt > 15.8) {stateBattery = ledStatus(pos[0],false) | ledStatus(pos[1],true)  | ledStatus(pos[2],true)  | ledStatus(pos[3],false);}// | XX :
-    else if (batt <= 15.8 && batt > 15.4) {stateBattery = ledStatus(pos[0],false) | ledStatus(pos[1],true)  | ledStatus(pos[2],false) | ledStatus(pos[3],false);}// | X  :
-    else if (batt <= 15.4 && batt > 14.8) {stateBattery = ledStatus(pos[0],true)  | ledStatus(pos[1],false) | ledStatus(pos[2],false) | ledStatus(pos[3],false);}// |X   :
-    else                                  {stateBattery = ledStatus(pos[0],false) | ledStatus(pos[1],false) | ledStatus(pos[2],false) | ledStatus(pos[3],false);}// |    :  
+    if(batt > 16.4)                       {ledCmd_batteries = ledStatus(pos[0],LED_OFF) | ledStatus(pos[1],LED_ON)  | ledStatus(pos[2],LED_ON)  | ledStatus(pos[3],LED_ON);} // | XXX:
+    else if (batt <= 16.4 && batt > 15.8) {ledCmd_batteries = ledStatus(pos[0],LED_OFF) | ledStatus(pos[1],LED_ON)  | ledStatus(pos[2],LED_ON)  | ledStatus(pos[3],LED_OFF);}// | XX :
+    else if (batt <= 15.8 && batt > 15.4) {ledCmd_batteries = ledStatus(pos[0],LED_OFF) | ledStatus(pos[1],LED_ON)  | ledStatus(pos[2],LED_OFF) | ledStatus(pos[3],LED_OFF);}// | X  :
+    else if (batt <= 15.4 && batt > 14.8) {ledCmd_batteries = ledStatus(pos[0],LED_ON)  | ledStatus(pos[1],LED_OFF) | ledStatus(pos[2],LED_OFF) | ledStatus(pos[3],LED_OFF);}// |X   :
+    else                                  {ledCmd_batteries = ledStatus(pos[0],LED_OFF) | ledStatus(pos[1],LED_OFF) | ledStatus(pos[2],LED_OFF) | ledStatus(pos[3],LED_OFF);}// |    :  
     // 14,8V is the lowest voltage we are confortable with
 
-    return stateBattery;
+    return ledCmd_batteries;
 }
 
-void led_feedbackFunction(double_t batt1, double_t batt2)
+uint16_t led_getStateMotor(motor_state_t* motorState, uint8_t nbMotors)
 {
-    uint16_t stateBattery = 0;
-    uint16_t stateMotor = 0;
+    uint16_t ledCmd_motor=0;
+    led_state_t currentLEDstate;
 
-    stateBattery = led_getStateBattery(batt1, 0) | led_getStateBattery(batt2, 2);
-    // Batteries
-    // if(batt1 > 16.4) stateBattery1 = 0b01010100;
-    // else if (batt1 <= 16.4 && batt1 > 15.8) stateBattery1 = 0b01010000;
-    // else if (batt1 <= 15.8 && batt1 > 15.4) stateBattery1 = 0b01000000;
-    // else if (batt1 <= 15.4 && batt1 > 14.8) stateBattery1 = 0b0000001;
-    // else stateBattery1 = 0b00000000;    // 14,8V is the lowest voltage we are confortable with
+    if(nbMotors != NB_MOTORS){
+        return 0xFFFF; //something went very bad...
+    }
 
-    // if(batt2 > 16.4) stateBattery2 = 0b00010101;    // Connection inverted on the led driver for battery 2
-    // else if (batt2 <= 16.4 && batt2 > 15.8) stateBattery2 = 0b00000101;
-    // else if (batt2 <= 15.8 && batt2 > 15.4) stateBattery2 = 0b00000001;
-    // else if (batt2 <= 15.4 && batt2 > 14.8) stateBattery2 = 0b01000000;
-    // else stateBattery2 = 0b00000000;    // 14,8V is the lowest voltage we are confortable with
+    //This array gives the position of led for the corresponding motro
+    //(index 0 = M1, index 7 =M8) 
+    uint8_t LED_POSITION[NB_MOTORS] ={4,5,6,7,3,2,1,0};
 
-    //ojt: TODO: check 
-    // Motors
-    stateMotor = 0;
-    for(uint8_t i=0; i<NB_MOTORS/2; ++i)
+    for(int i=0; i<nbMotors; i++)
     {
-        stateMotor += fault_detection[i];
-        stateMotor = (stateMotor<<0x2);
+        if(motorState[i] == MOTOR_ON){
+            currentLEDstate = LED_ON;
+        }else if (motorState[i] == MOTOR_FAILURE)
+        {
+            currentLEDstate = LED_PWM1;
+        }else{
+            currentLEDstate = LED_OFF;
+        }
+        
+        ledCmd_motor |=ledStatus(LED_POSITION[i],currentLEDstate);
     }
 
-    for(uint8_t i=NB_MOTORS-1; i>(NB_MOTORS/2)-1; --i) // Not sure this works but the board is changing soon
-    {                                                // so I won't work on it
-        stateMotor += fault_detection[i];
+    return ledCmd_motor;
+}
 
-        if(i != 4) stateMotor = (stateMotor<<0x2);
+void led_feedbackCallback(void)
+{
+    uint16_t ledCmd_batteries = 0;
+    uint16_t ledCmd_motor = 0;
+    double_t batt0, batt1;
+    motor_state_t motor_state_cpy[NB_MOTORS];
+
+    while (1)
+    {
+        //copy localy the value of the batteries and the state of the
+        //motors so we dont have to worry about the mutx afterward
+        batt_state.mutex.lock();
+        batt0 = batt_state.batt[0];
+        batt1 = batt_state.batt[1];
+        batt_state.mutex.unlock();
+
+        motor_state.mutex.lock();
+        for(int i=0; i<NB_MOTORS; i++) {motor_state_cpy[i] = motor_state.state[i];}
+        motor_state.mutex.unlock();
+
+
+
+        ledCmd_batteries = led_getStateBattery(batt0, 0) | led_getStateBattery(batt1, 1);
+        ledCmd_motor = led_getStateMotor(motor_state_cpy, NB_MOTORS);
+
+        kill_led = (isKillSwitchActivated)? 0: 1;
+
+        ledDriver1.setLEDs(ledCmd_batteries);
+        //ledDriver2.setLEDs(0b1010101010101010);
+        
+        ledDriver2.setLEDs(ledCmd_motor);
+        ThisThread::sleep_for(1003);
     }
+    
 
-    // Kill
-    if(isKillSwitchActivated == 0) kill_led = 1;
-    else kill_led = 0;
-
-    ledDriver1.setLEDs(stateBattery);
-    ledDriver2.setLEDs(stateMotor);
 }
 
 int main()
@@ -260,7 +329,8 @@ int main()
     {
         pwm[i].period_us(2000);
         pwm[i].pulsewidth_us(1500);
-        enable_motor_request[i] = 0;
+        enable_motor_request.request[i] = 0;
+        motor_failure_state.state[i] = 0;
     }
 
     for(uint8_t i = 0; i < NB_FAN; ++i)
@@ -274,15 +344,15 @@ int main()
     spi_sd.frequency(1000000);
 
     uint8_t i = 0;
-    while(i < NB_12V + NB_MOTORS)
-    {
-        sensor[i].setConfig(CONFIG_SET);
-        sensor[i].setConfigADC(CONFIG_ADC_SET);
-        sensor[i].setShuntCal(SHUNT_CALIBRATION);
-        sensor[i].setCurrentLSB(CURRENT_LSB_CALIBRATION);
-        if(sensor[i].getConfig() == CONFIG_SET || sensor[i].getConfigADC() == CONFIG_ADC_SET ||
-            sensor[i].getShuntCal() == SHUNT_CALIBRATION || sensor[i].getCurrentLSB() == CURRENT_LSB_CALIBRATION) ++i;
-    }
+    // while(i < NB_12V + NB_MOTORS)
+    // {
+    //     sensor[i].setConfig(CONFIG_SET);
+    //     sensor[i].setConfigADC(CONFIG_ADC_SET);
+    //     sensor[i].setShuntCal(SHUNT_CALIBRATION);
+    //     sensor[i].setCurrentLSB(CURRENT_LSB_CALIBRATION);
+    //     if(sensor[i].getConfig() == CONFIG_SET && sensor[i].getConfigADC() == CONFIG_ADC_SET &&
+    //         sensor[i].getShuntCal() == SHUNT_CALIBRATION && sensor[i].getCurrentLSB() == CURRENT_LSB_CALIBRATION) ++i;
+    // }
 
     reset_led = 1;
 
@@ -293,11 +363,17 @@ int main()
     yellow_tristate = 1;
     green_tristate = 0;
 
+    readSensor.start(readSensorCallback);
+    readSensor.set_priority(osPriorityHigh);
+
     readMotorStatus.start(readMotorStatusCallback);
     readMotorStatus.set_priority(osPriorityHigh);
 
-    emergencyStop.start(emergencyStopCallback);
-    emergencyStop.set_priority(osPriorityHigh1);
+    motorController.start(motorControllerCallback);
+    motorController.set_priority(osPriorityHigh1);
+
+    ledController.start(led_feedbackCallback);
+    ledController.set_priority(osPriorityHigh1);
 
     pwmController.start(pwmControllerCallback);
     pwmController.set_priority(osPriorityHigh);
