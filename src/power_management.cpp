@@ -103,11 +103,8 @@ void motorControllerCallback()
                 enable_motor[i] = 0;
                 motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
             }else if(error_status_motor[i]){
-                //this tempory, if you read this change it
-                //motor_state_copy[i] = MOTOR_FAILURE;
-                //enable_motor[i] = 0;
-                enable_motor[i] = enable_motor_request_copy[i];
-                motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
+                motor_state_copy[i] = MOTOR_FAILURE;
+                enable_motor[i] = 0;
             }else{
                 enable_motor[i] = enable_motor_request_copy[i];
                 motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
