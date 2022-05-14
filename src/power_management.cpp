@@ -11,6 +11,11 @@
 #define USE_KILL_SIGNAL_HIGH
 #include "power_management.h"
 
+uint16_t applyCalibration(uint16_t pwm)
+{
+    return pwm + CALIB_VAL_PWM;
+}
+
 bool isKillSwitchActivated()
 {
  return kill_input == KILL_ACTIVATION_STATUS;
@@ -70,12 +75,12 @@ void motorControllerCallback()
     while(true)
     {
         //set pwm to neutral if kill switch activated
-        if(!isKillSwitchActivated()){
+        if(isKillSwitchActivated()){
             //note pwmControllerCallback all ready check if the kill is
             //activated, but it waits for a new message to arrive
             mutexPWM.lock();
             for(uint8_t i = 0; i< NB_MOTORS; i++){
-                pwm[i].pulsewidth_us(NEUTRAL_PWM);
+                pwm[i].pulsewidth_us(applyCalibration(NEUTRAL_PWM) );
             }
             mutexPWM.unlock();
         }
@@ -96,10 +101,13 @@ void motorControllerCallback()
         {
             if(isKillSwitchActivated()){
                 enable_motor[i] = 0;
-                motor_state_copy[i] = MOTOR_OFF;
+                motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
             }else if(error_status_motor[i]){
-                enable_motor[i] = 0;
-                motor_state_copy[i] = MOTOR_FAILURE;
+                //this tempory, if you read this change it
+                //motor_state_copy[i] = MOTOR_FAILURE;
+                //enable_motor[i] = 0;
+                enable_motor[i] = enable_motor_request_copy[i];
+                motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
             }else{
                 enable_motor[i] = enable_motor_request_copy[i];
                 motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
@@ -108,8 +116,8 @@ void motorControllerCallback()
 
         motor_state.mutex.lock();
         //for(int i=0; i<NB_MOTORS; i++)  {motor_state.state[i] = motor_state_copy[i];}
-         motor_state_t motor_state_tmp[NB_MOTORS]={MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_ON, MOTOR_FAILURE, MOTOR_OFF};
-        for(int i=0; i<NB_MOTORS; i++)  {motor_state.state[i] = motor_state_tmp[i];}
+         //motor_state_t motor_state_tmp[NB_MOTORS]={MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_OFF, MOTOR_ON, MOTOR_FAILURE, MOTOR_OFF};
+        for(int i=0; i<NB_MOTORS; i++)  {motor_state.state[i] = motor_state_copy[i];}
         motor_state.mutex.unlock();
 
         ThisThread::sleep_for(200);
@@ -123,25 +131,30 @@ void pwmControllerCallback()
     uint8_t nb_command = 1;
     uint8_t size_command = 16;
     uint16_t data_pwm = 0;
+    uint8_t enable_motor_request_copy[NB_MOTORS]= {0};
 
     while(true)
     {
         if(rs485.read(cmd_array, nb_command, pwm_received) == size_command)
         {
+            enable_motor_request.mutex.lock();
+            for(uint8_t i = 0; i < NB_MOTORS; i++){ enable_motor_request_copy[i] = enable_motor_request.request[i];}
+            enable_motor_request.mutex.unlock();
+
             mutexPWM.lock();
             for(uint8_t i=0; i<NB_MOTORS; ++i)
             {
-                if(!isKillSwitchActivated())
+                if( ( !isKillSwitchActivated() ) && (enable_motor_request_copy[i] == 1) )
                 {
                     data_pwm = pwm_received[(2*i)+1]+pwm_received[2*i]*256;
                     if(data_pwm >= MIN_PWM && data_pwm <= MAX_PWM)
                     {
-                        pwm[i].pulsewidth_us(data_pwm);
+                        pwm[i].pulsewidth_us(applyCalibration(data_pwm));
                     }
                 }
                 else
                 {
-                    pwm[i].pulsewidth_us(NEUTRAL_PWM);
+                    pwm[i].pulsewidth_us(applyCalibration(NEUTRAL_PWM));
                 }
             }
             mutexPWM.unlock();
@@ -306,7 +319,7 @@ void led_feedbackCallback(void)
         ledCmd_batteries = led_getStateBattery(batt0, 0) | led_getStateBattery(batt1, 1);
         ledCmd_motor = led_getStateMotor(motor_state_cpy, NB_MOTORS);
 
-        kill_led = (isKillSwitchActivated)? 0: 1;
+        kill_led = (isKillSwitchActivated())? 0: 1;
 
         ledDriver1.setLEDs(ledCmd_batteries);
         //ledDriver2.setLEDs(0b1010101010101010);
@@ -328,7 +341,7 @@ int main()
     for(uint8_t i = 0; i < NB_MOTORS; ++i)
     {
         pwm[i].period_us(2000);
-        pwm[i].pulsewidth_us(1500);
+        pwm[i].pulsewidth_us(applyCalibration(NEUTRAL_PWM));
         enable_motor_request.request[i] = 0;
         motor_failure_state.state[i] = 0;
     }
@@ -374,6 +387,9 @@ int main()
 
     ledController.start(led_feedbackCallback);
     ledController.set_priority(osPriorityHigh1);
+
+    motorEnableRqst.start(receiveMotorEnableRequestCallback);
+    motorEnableRqst.set_priority(osPriorityHigh);
 
     pwmController.start(pwmControllerCallback);
     pwmController.set_priority(osPriorityHigh);

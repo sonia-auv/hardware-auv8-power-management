@@ -34,6 +34,7 @@
 #define NEUTRAL_PWM (1500)
 #define MAX_PWM (1900)
 #define MIN_PWM (1100)
+#define CALIB_VAL_PWM (30)
 
 #define NB_MOTORS (8)
 #define NB_12V (2)
@@ -110,7 +111,7 @@ DigitalIn pwm_stop(PWM_STOP);
 
 SPI spi(MOSI, MISO, SCLK);
 SPI spi_sd(MOSI_SD, MISO_SD, SCLK_SD);
-RS485 rs485(SLAVE_PSU0);
+RS485 rs485(SLAVE_PWR_MANAGEMENT);
 I2C i2c_bus(I2C_SDA, I2C_SCL);
 PCA9531 ledDriver1(&i2c_bus, LED_DRIVER1);
 PCA9531 ledDriver2(&i2c_bus, LED_DRIVER2);
@@ -124,6 +125,7 @@ INA228 sensor[NB_MOTORS + NB_12V] = {INA228(&i2c_bus, I2C_M1), INA228(&i2c_bus, 
 //###################################################
 
 Thread readSensor;
+Thread motorEnableRqst;
 Thread activateMotor;
 Thread readMotorStatus;
 Thread motorController;
