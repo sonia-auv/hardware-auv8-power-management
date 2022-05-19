@@ -12,17 +12,17 @@
 #define TEMP_2 (0x4A<<1)
 #define TEMP_3 (0x4E<<1)
 
-#define I2C_M1 (0x40<<1)
-#define I2C_M2 (0x41<<1)
-#define I2C_M3 (0x40<<1)
-#define I2C_M4 (0x41<<1)
-#define I2C_M5 (0x44<<1)
-#define I2C_M6 (0x45<<1)
-#define I2C_M7 (0x44<<1)
-#define I2C_M8 (0x45<<1)
+#define M1_ADRESS (0x40<<1)
+#define M2_ADRESS (0x41<<1)
+#define M3_ADRESS (0x42<<1)
+#define M4_ADRESS (0x43<<1)
+#define M5_ADRESS (0x44<<1)
+#define M6_ADRESS (0x45<<1)
+#define M7_ADRESS (0x46<<1)
+#define M8_ADRESS (0x47<<1)
 
-#define I2C_12V1 (0x4C<<1)
-#define I2C_12V2 (0x4C<<1)
+#define ACC1_ADRESS (0x4C<<1)
+#define ACC2_ADRESS (0x4D<<1)
 
 
 #endif

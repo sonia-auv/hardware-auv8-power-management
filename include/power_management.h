@@ -34,7 +34,8 @@
 #define NEUTRAL_PWM (1500)
 #define MAX_PWM (1900)
 #define MIN_PWM (1100)
-#define CALIB_VAL_PWM (30)
+//#define CALIB_VAL_PWM (30)
+#define CALIB_VAL_PWM (0)
 
 #define NB_MOTORS (8)
 #define NB_12V (2)
@@ -68,7 +69,7 @@ typedef enum{
 //             PINOUT FONCTION DEFINITION
 //###################################################
 
-PwmOut pwm[NB_MOTORS] = {PwmOut(PWM1), PwmOut(PWM2), PwmOut(PWM3), PwmOut(PWM4), 
+PwmOut pwm[NB_MOTORS] = {PwmOut(PWM1), PwmOut(PWM2), PwmOut(PWM3), PwmOut(MISO_PWM4), 
     PwmOut(PWM5), PwmOut(PWM6), PwmOut(PWM7), PwmOut(PWM8)};
 
 DigitalOut enable_motor[NB_MOTORS] = {DigitalOut(MTR1), DigitalOut(MTR2), DigitalOut(MTR3), DigitalOut(MTR4), 
@@ -109,17 +110,18 @@ DigitalIn pwm_stop(PWM_STOP);
 //             OBJECTS DEFINITION
 //###################################################
 
-SPI spi(MOSI, MISO, SCLK);
-SPI spi_sd(MOSI_SD, MISO_SD, SCLK_SD);
+// SPI spi(MOSI, MISO, SCLK);
+// SPI spi_sd(MOSI_SD, MISO_SD, SCLK_SD);
 RS485 rs485(SLAVE_PWR_MANAGEMENT);
-I2C i2c_bus(I2C_SDA, I2C_SCL);
-PCA9531 ledDriver1(&i2c_bus, LED_DRIVER1);
-PCA9531 ledDriver2(&i2c_bus, LED_DRIVER2);
+I2C i2c_bus2(I2C2_SDA, I2C2_SCL);
+I2C i2c_bus(PWM4_I2C_SDA, I2C_SCL);
 
-INA228 sensor[NB_MOTORS + NB_12V] = {INA228(&i2c_bus, I2C_M1), INA228(&i2c_bus, I2C_M2), INA228(&i2c_bus, I2C_M3), 
-    INA228(&i2c_bus, I2C_M4), INA228(&i2c_bus, I2C_M5), INA228(&i2c_bus, I2C_M6), INA228(&i2c_bus, I2C_M7), 
-    INA228(&i2c_bus, I2C_M8), INA228(&i2c_bus, I2C_12V1), INA228(&i2c_bus, I2C_12V2)};
+PCA9531 ledDriver1(&i2c_bus2, LED_DRIVER1);
+PCA9531 ledDriver2(&i2c_bus2, LED_DRIVER2);
 
+INA228 sensor[NB_MOTORS + NB_12V] = {INA228(&i2c_bus, M1_ADRESS), INA228(&i2c_bus, M2_ADRESS), INA228(&i2c_bus, M3_ADRESS), 
+    INA228(&i2c_bus, M4_ADRESS), INA228(&i2c_bus, M5_ADRESS), INA228(&i2c_bus, M6_ADRESS), INA228(&i2c_bus, M7_ADRESS), 
+    INA228(&i2c_bus, M8_ADRESS), INA228(&i2c_bus, ACC1_ADRESS), INA228(&i2c_bus, ACC2_ADRESS)};
 //###################################################
 //             THREAD DEFINITION
 //###################################################

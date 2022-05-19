@@ -59,7 +59,7 @@ void readMotorStatusCallback()
         }
         motor_failure_state.mutex.unlock();
 
-        rs485.write(SLAVE_PSU0, cmd_array[0], nb_bytes, send);
+        rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[0], nb_bytes, send);
         ThisThread::sleep_for(1000);
     }
 }
@@ -181,29 +181,25 @@ void readSensorCallback()
 
   while(true)
   {
-    // for(uint8_t i=0; i<nb_sensor; ++i)
-    // {
-    //   check_mask(sensor[i]);
+    for(uint8_t i=0; i<nb_sensor; ++i)
+    {
+      check_mask(sensor[i]);
+      voltage = sensor[i].getBusVolt();
+      current = sensor[i].getCurrent();
+      putFloatInArray(voltage_send, voltage, i*4);
+      putFloatInArray(current_send, current, i*4);
+      if(i == 8)    {batt0 = voltage;} 
+      if(i == 9)    {batt1 = voltage;}
+    }
 
-    //   voltage = sensor[i].getBusVolt();
-    //   current = sensor[i].getCurrent();
-
-    //   putFloatInArray(voltage_send, voltage, i*4);
-    //   putFloatInArray(current_send, current, i*4);
-
-    //   if(i == 8) batt0 = voltage;
-    //   if(i == 9) batt1 = voltage;
-    // }
-    batt1 = 16.8;
-    batt0 =14;
 
     batt_state.mutex.lock();
     batt_state.batt[0]=batt0;
     batt_state.batt[1]=batt1;
     batt_state.mutex.unlock();
 
-    rs485.write(SLAVE_PSU0, cmd_array[0], nb_byte_send, voltage_send);
-    rs485.write(SLAVE_PSU0, cmd_array[1], nb_byte_send, current_send);
+    rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[0], nb_byte_send, voltage_send);
+    rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[1], nb_byte_send, current_send);
     ThisThread::sleep_for(500);
   }
 }
@@ -348,21 +344,28 @@ int main()
         fan[i] = 0;
     }
 
-    spi.format(8, 1);
-    spi.frequency(1000000);
-    spi_sd.format(8, 1);
-    spi_sd.frequency(1000000);
-
     uint8_t i = 0;
-    // while(i < NB_12V + NB_MOTORS)
-    // {
-    //     sensor[i].setConfig(CONFIG_SET);
-    //     sensor[i].setConfigADC(CONFIG_ADC_SET);
-    //     sensor[i].setShuntCal(SHUNT_CALIBRATION);
-    //     sensor[i].setCurrentLSB(CURRENT_LSB_CALIBRATION);
-    //     if(sensor[i].getConfig() == CONFIG_SET && sensor[i].getConfigADC() == CONFIG_ADC_SET &&
-    //         sensor[i].getShuntCal() == SHUNT_CALIBRATION && sensor[i].getCurrentLSB() == CURRENT_LSB_CALIBRATION) ++i;
-    // }
+    while(i < (NB_12V + NB_MOTORS))
+    {
+        uint16_t man = sensor[i].getManufacturer();
+
+        //if(man !=0){
+        //    i++;
+        //}
+        sensor[i].setConfig(CONFIG_SET);
+        sensor[i].setConfigADC(CONFIG_ADC_SET);
+        sensor[i].setShuntCal(SHUNT_CALIBRATION);
+        sensor[i].setCurrentLSB(CURRENT_LSB_CALIBRATION);
+        float currentLSB = sensor[i].getCurrentLSB();
+        printf("Current LSB config: %0.3f\n", currentLSB);
+
+        if(sensor[i].getConfig() == CONFIG_SET && sensor[i].getConfigADC() == CONFIG_ADC_SET && sensor[i].getShuntCal() == SHUNT_CALIBRATION){
+            i++;
+        }
+
+        //if(sensor[i].getConfig() == CONFIG_SET && sensor[i].getConfigADC() == CONFIG_ADC_SET &&
+        //    sensor[i].getShuntCal() == SHUNT_CALIBRATION && sensor[i].getCurrentLSB() == CURRENT_LSB_CALIBRATION) ++i;
+    }
 
     reset_led = 1;
 
