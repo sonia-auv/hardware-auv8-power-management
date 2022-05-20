@@ -327,6 +327,7 @@ void led_feedbackCallback(void)
 int main()
 {
     reset_led = 0;
+    sd_led = 1;
     red_tristate = 1;
     yellow_tristate = 0;
     green_tristate = 0;
@@ -341,7 +342,7 @@ int main()
 
     for(uint8_t i = 0; i < NB_FAN; ++i)
     {
-        fan[i] = 0;
+        fan[i] = 1;
     }
 
     uint8_t i = 0;
