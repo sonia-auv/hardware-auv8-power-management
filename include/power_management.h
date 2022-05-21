@@ -73,10 +73,10 @@ typedef enum{
 PwmOut pwm[NB_MOTORS] = {PwmOut(PWM1), PwmOut(PWM2), PwmOut(PWM3), PwmOut(MISO_PWM4), 
     PwmOut(PWM5), PwmOut(PWM6), PwmOut(PWM7), PwmOut(PWM8)};
 
-DigitalOut enable_motor[NB_MOTORS] = {DigitalOut(MTR1), DigitalOut(MTR2), DigitalOut(MTR3), DigitalOut(MTR4), 
+DigitalOut enable_motor[NB_MOTORS] = {DigitalOut(MTR1), DigitalOut(A0), DigitalOut(MTR3), DigitalOut(MTR4), 
     DigitalOut(MTR5), DigitalOut(MTR6), DigitalOut(MTR7), DigitalOut(MTR8)};
 
-DigitalOut cs_address[NB_CS_ADRESS] = {DigitalOut(A0), DigitalOut(A1), DigitalOut(A2), DigitalOut(A3)};
+//DigitalOut cs_address[NB_CS_ADRESS] = {DigitalOut(A0), DigitalOut(A1), DigitalOut(A2), DigitalOut(A3)};
 
 DigitalOut fan[NB_FAN] = {DigitalOut(FAN1), DigitalOut(FAN2)};
 

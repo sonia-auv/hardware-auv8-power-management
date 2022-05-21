@@ -48,16 +48,44 @@ void readMotorStatusCallback()
     uint8_t cmd_array[1] = {CMD_READ_MOTOR};
     uint8_t send[255] = {0};
     uint8_t nb_bytes = NB_MOTORS;
+    uint8_t motor_failure_state_cpy[NB_MOTORS];
+    uint8_t enable_motor_resquest_cpy[NB_MOTORS];
+
+
 
     while(true)
     {
+
+        enable_motor_request.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; i++)
+        {
+            enable_motor_resquest_cpy[i] = enable_motor_request.request[i];
+        }
+        enable_motor_request.mutex.unlock();
+
+
+        //get motor faillure state and set message
         motor_failure_state.mutex.lock();
         for(uint8_t i = 0; i < NB_MOTORS; ++i)
         {
             motor_failure_state.state[i] = ~(status_motor[i]) & 0x01;
-            send[i] = (motor_failure_state.state[i] == 1) ? 0x02 : 0x00; //if error detected, send 0x02, 0 otherwise
+            motor_failure_state_cpy[i] = motor_failure_state.state[i]; 
+            //if error detected, send 0x02, otherwise we send to enable request
+            send[i] = (motor_failure_state.state[i] == 1) ? 0x02 : enable_motor_resquest_cpy[i]; 
         }
         motor_failure_state.mutex.unlock();
+
+        //if a motor is in a faillure state, we desactivae it. The user will
+        //have to reanble it explicitly 
+        enable_motor_request.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; i++)
+        {
+            if(motor_failure_state_cpy[i] == 1){
+                enable_motor_request.request[i] = 0;
+            }
+        }
+        enable_motor_request.mutex.unlock();
+
 
         rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[0], nb_bytes, send);
         ThisThread::sleep_for(1000);
