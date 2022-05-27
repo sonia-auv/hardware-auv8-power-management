@@ -172,12 +172,13 @@ void check_mask(INA228 sensor)
 
 void readSensorCallback()
 {
-  uint8_t cmd_array[2]={CMD_VOLTAGE, CMD_CURRENT};
+  uint8_t cmd_array[3]={CMD_VOLTAGE, CMD_CURRENT, CMD_TEMPERATURE};
   uint8_t voltage_send[255]={0};
   uint8_t current_send[255]={0};
+  uint8_t temperature_send[255]={0};
   uint8_t nb_sensor = NB_MOTORS+NB_12V;
   uint8_t nb_byte_send = 4*(nb_sensor);
-  double_t voltage, current, batt0 = 0, batt1 = 0;
+  double_t voltage, current, temperature, batt0 = 0, batt1 = 0;
 
   while(true)
   {
@@ -186,12 +187,13 @@ void readSensorCallback()
       check_mask(sensor[i]);
       voltage = sensor[i].getBusVolt();
       current = sensor[i].getCurrent();
+      temperature = sensor[i].getDieTemp();
       putFloatInArray(voltage_send, voltage, i*4);
       putFloatInArray(current_send, current, i*4);
+      putFloatInArray(temperature_send, temperature, i*4);
       if(i == 8)    {batt0 = voltage;} 
       if(i == 9)    {batt1 = voltage;}
     }
-
 
     batt_state.mutex.lock();
     batt_state.batt[0]=batt0;
@@ -200,6 +202,7 @@ void readSensorCallback()
 
     rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[0], nb_byte_send, voltage_send);
     rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[1], nb_byte_send, current_send);
+    rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[2], nb_byte_send, temperature_send);
     ThisThread::sleep_for(500);
   }
 }
