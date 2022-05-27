@@ -51,15 +51,12 @@ void readMotorStatusCallback()
     uint8_t motor_failure_state_cpy[NB_MOTORS];
     uint8_t enable_motor_resquest_cpy[NB_MOTORS];
 
-
-
     while(true)
     {
-
         enable_motor_request.mutex.lock();
         for(uint8_t i = 0; i < NB_MOTORS; i++)
         {
-            enable_motor_resquest_cpy[i] = enable_motor_request.request[i];
+           enable_motor_resquest_cpy[i] = enable_motor_request.request[i];
         }
         enable_motor_request.mutex.unlock();
 
@@ -75,14 +72,15 @@ void readMotorStatusCallback()
         }
         motor_failure_state.mutex.unlock();
 
-        //if a motor is in a faillure state, we desactivae it. The user will
-        //have to reanble it explicitly 
+
+        //if a motor is in a failure state, we deactivate it. The user will
+        //have to renable it explicitly 
         enable_motor_request.mutex.lock();
         for(uint8_t i = 0; i < NB_MOTORS; i++)
         {
-            if(motor_failure_state_cpy[i] == 1){
-                enable_motor_request.request[i] = 0;
-            }
+           if(motor_failure_state_cpy[i] == 1){
+               enable_motor_request.request[i] = 0;
+           }
         }
         enable_motor_request.mutex.unlock();
 
@@ -132,7 +130,9 @@ void motorControllerCallback()
                 motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
             }else if(error_status_motor[i]){
                 motor_state_copy[i] = MOTOR_FAILURE;
-                enable_motor[i] = 0;
+                //enable_motor[i] = 0;
+                enable_motor[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
+
             }else{
                 enable_motor[i] = enable_motor_request_copy[i];
                 motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
