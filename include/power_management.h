@@ -135,6 +135,7 @@ Thread motorController;
 Thread pwmController;
 Thread fanController;
 Thread ledController;
+Thread threadIsAlive;
 
 //###################################################
 //             VARIABLES DEFINITION

@@ -86,7 +86,7 @@ void readMotorStatusCallback()
 
 
         rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[0], nb_bytes, send);
-        ThisThread::sleep_for(1000);
+        ThisThread::sleep_for(1000ms);
     }
 }
 
@@ -145,7 +145,7 @@ void motorControllerCallback()
         for(int i=0; i<NB_MOTORS; i++)  {motor_state.state[i] = motor_state_copy[i];}
         motor_state.mutex.unlock();
 
-        ThisThread::sleep_for(500);
+        ThisThread::sleep_for(500ms);
     }
 }
 
@@ -194,7 +194,7 @@ void check_mask(INA228 sensor)
   while(data_ready == 0)
   {
     data_ready = ((sensor.getAlertFlags()>>1) & 0x01);
-    ThisThread::sleep_for(1);
+    ThisThread::sleep_for(1ms);
   }
 }
 
@@ -231,7 +231,7 @@ void readSensorCallback()
     rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[0], nb_byte_send, voltage_send);
     rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[1], nb_byte_send, current_send);
     rs485.write(SLAVE_PWR_MANAGEMENT, cmd_array[2], nb_byte_send, temperature_send);
-    ThisThread::sleep_for(500);
+    ThisThread::sleep_for(500ms);
   }
 }
 
@@ -349,7 +349,7 @@ void led_feedbackCallback(void)
         //ledDriver2.setLEDs(0b1010101010101010);
         
         ledDriver2.setLEDs(ledCmd_motor);
-        ThisThread::sleep_for(1000);
+        ThisThread::sleep_for(1000ms);
     }
     
 
@@ -425,6 +425,9 @@ int main()
 
     pwmController.start(pwmControllerCallback);
     pwmController.set_priority(osPriorityHigh3);
+
+    threadIsAlive.start(callback(isAliveThread, &rs485));
+    threadIsAlive.set_priority(osPriorityHigh3);
 
     red_tristate = 0;
     yellow_tristate = 0;
