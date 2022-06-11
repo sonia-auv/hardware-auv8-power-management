@@ -145,7 +145,7 @@ void motorControllerCallback()
         for(int i=0; i<NB_MOTORS; i++)  {motor_state.state[i] = motor_state_copy[i];}
         motor_state.mutex.unlock();
 
-        ThisThread::sleep_for(200);
+        ThisThread::sleep_for(500);
     }
 }
 
@@ -349,7 +349,7 @@ void led_feedbackCallback(void)
         //ledDriver2.setLEDs(0b1010101010101010);
         
         ledDriver2.setLEDs(ledCmd_motor);
-        ThisThread::sleep_for(1003);
+        ThisThread::sleep_for(1000);
     }
     
 
@@ -409,7 +409,7 @@ int main()
     green_tristate = 0;
 
     readSensor.start(readSensorCallback);
-    readSensor.set_priority(osPriorityHigh);
+    readSensor.set_priority(osPriorityHigh2);
 
     readMotorStatus.start(readMotorStatusCallback);
     readMotorStatus.set_priority(osPriorityHigh);
@@ -424,7 +424,7 @@ int main()
     motorEnableRqst.set_priority(osPriorityHigh);
 
     pwmController.start(pwmControllerCallback);
-    pwmController.set_priority(osPriorityHigh);
+    pwmController.set_priority(osPriorityHigh3);
 
     red_tristate = 0;
     yellow_tristate = 0;
