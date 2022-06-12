@@ -24,9 +24,9 @@ int main()
 
   // Test #1 : Puissance maximale compé durant 10 mins sans cooling
   pwm.pulsewidth_us(1700);
-  for (uint8_t i = 0; i < 1; ++i)
+  for (uint8_t i = 0; i < 10; ++i)
   {
-    ThisThread::sleep_for(2000); // Sleep 60 secondes
+    ThisThread::sleep_for(60000); // Sleep 60 secondes
     led3 = !(led3);
   }
 
