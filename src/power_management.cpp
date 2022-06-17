@@ -377,6 +377,8 @@ int main()
     }
 
     uint8_t i = 0;
+
+    // if the config isn't found (if the board is tested alone for example), this is gonna become an infinite loop
     while(i < (NB_12V + NB_MOTORS))
     {
         uint16_t man = sensor[i].getManufacturer();
@@ -427,7 +429,7 @@ int main()
     pwmController.set_priority(osPriorityHigh3);
 
     threadIsAlive.start(callback(isAliveThread, &rs485));
-    threadIsAlive.set_priority(osPriorityHigh3);
+    threadIsAlive.set_priority(osPriorityNormal);
 
     red_tristate = 0;
     yellow_tristate = 0;
