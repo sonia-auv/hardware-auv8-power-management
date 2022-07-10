@@ -44,7 +44,8 @@
 
 // This is use to check that the user has requested to turn
 // on the motors and the voltage is over this threshold
-#define ON_MOTOR_VOLTAGE 14
+#define ON_MOTOR_VOLTAGE 3
+#define MAX_MOTOR_ERROR_DETECTED 5
 
 #if defined(USE_KILL_SIGNAL_HIGH)
     #define KILL_ACTIVATION_STATUS (1)

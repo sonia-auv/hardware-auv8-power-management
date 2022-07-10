@@ -51,6 +51,7 @@ void readMotorStatusCallback()
     uint8_t motor_error_state_cpy[NB_MOTORS] = {0};
     uint8_t motor_failure_state_cpy[NB_MOTORS] = {0};
     uint8_t enable_motor_resquest_cpy[NB_MOTORS] = {0};
+    uint8_t nb_motor_error_detected[NB_MOTORS] = {0};
     double_t voltage_motor_copy[NB_MOTORS] = {0};
 
     while(true)
@@ -74,37 +75,47 @@ void readMotorStatusCallback()
         }
         motor_failure_state.mutex.unlock();
 
-        //get motor error state and set message
-        // motor_error_state.mutex.lock();
-        // for(uint8_t i = 0; i < NB_MOTORS; ++i)
-        // {
-        //     if(motor_failure_state_cpy[i] != 1)
-        //     {
-        //         // Check if the voltage is under a threshold the request is at 1. Overcurrent has been cleared.
-        //         if(voltage_motor_copy[i] < ON_MOTOR_VOLTAGE && enable_motor_resquest_cpy[i] == 1 && !(isKillSwitchActivated()))
-        //         {
-        //             motor_error_state.state[i] = 0x01;
-        //         }
-        //         else
-        //         {
-        //             motor_error_state.state[i] = 0x00;
-        //         }
-        //         motor_error_state_cpy[i] = motor_error_state.state[i];
-        //     }
-        // }
-        // motor_error_state.mutex.unlock();
-
-        //if a motor is in a failure/error state, we deactivate it. The user will
-        //have to renable it explicitly 
-        enable_motor_request.mutex.lock();
-        for(uint8_t i = 0; i < NB_MOTORS; i++)
+        // get motor error state and set message
+        motor_error_state.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; ++i)
         {
-            if(motor_failure_state_cpy[i] == 1 || motor_error_state_cpy[i] == 1)
+            if(motor_failure_state_cpy[i] != 1)
             {
-                enable_motor_request.request[i] = 0;
+                // Check if the voltage is under a threshold and the request is at 1. Overcurrent has been cleared.
+                if(voltage_motor_copy[i] < ON_MOTOR_VOLTAGE && enable_motor_resquest_cpy[i] == 1 && !isKillSwitchActivated())
+                {
+                    nb_motor_error_detected[i] += 1;
+                }
+                else
+                {
+                    nb_motor_error_detected[i] = 0;
+                }
+                
+                // This has been implemented since it was creating errors while turning the motors on.
+                if(nb_motor_error_detected[i] == MAX_MOTOR_ERROR_DETECTED)
+                {
+                    motor_error_state.state[i] = 0x01;
+                }
+                else
+                {
+                    motor_error_state.state[i] = 0x00;
+                }
+                motor_error_state_cpy[i] = motor_error_state.state[i];
             }
         }
-        enable_motor_request.mutex.unlock();
+        motor_error_state.mutex.unlock();
+
+        //if a motor is in a failure/error state, we deactivate it. The user will
+        //have to renable it explicitly (to test without)
+        // enable_motor_request.mutex.lock();
+        // for(uint8_t i = 0; i < NB_MOTORS; i++)
+        // {
+        //     if(motor_failure_state_cpy[i] == 1 || motor_error_state_cpy[i] == 1)
+        //     {
+        //         enable_motor_request.request[i] = 0;
+        //     }
+        // }
+        // enable_motor_request.mutex.unlock();
 
         //Set the send message
         for(uint8_t i = 0; i < NB_MOTORS; ++i)
@@ -145,6 +156,11 @@ void motorControllerCallback()
         for(uint8_t i = 0; i < NB_MOTORS; i++){ failure_status_motor[i] = motor_failure_state.state[i];}
         motor_failure_state.mutex.unlock();
 
+        // get error status of all motor
+        motor_error_state.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; i++) { error_status_motor[i] = motor_error_state.state[i];}
+        motor_error_state.mutex.unlock();
+
         //get user request of all motor
         enable_motor_request.mutex.lock();
         for(uint8_t i = 0; i < NB_MOTORS; i++){ enable_motor_request_copy[i] = enable_motor_request.request[i];}
@@ -161,12 +177,12 @@ void motorControllerCallback()
             else if(failure_status_motor[i] == 1)
             {
                 motor_state_copy[i] = MOTOR_FAILURE;
-                enable_motor[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
+                enable_motor[i] = 0;//(enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF; (to test)
             }
             else if(error_status_motor[i] == 1)
             {
                 motor_state_copy[i] = MOTOR_ERROR;
-                enable_motor[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
+                enable_motor[i] = 0; //(enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF; (to test)
             }
             else
             {
