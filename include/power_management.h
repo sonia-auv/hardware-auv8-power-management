@@ -42,6 +42,11 @@
 #define NB_FAN (2)
 #define NB_CS_ADRESS (4)
 
+// This is use to check that the user has requested to turn
+// on the motors and the voltage is over this threshold
+#define ON_MOTOR_VOLTAGE 3
+#define MAX_MOTOR_ERROR_DETECTED 5
+
 #if defined(USE_KILL_SIGNAL_HIGH)
     #define KILL_ACTIVATION_STATUS (1)
 #elif defined(KILL_SWITCH_ACTIVE_LOW)
@@ -56,7 +61,8 @@ typedef uint8_t flags_t;
 typedef enum{
     MOTOR_ON,
     MOTOR_OFF,
-    MOTOR_FAILURE
+    MOTOR_FAILURE,
+    MOTOR_ERROR
 } motor_state_t;
 
 typedef enum{
@@ -153,6 +159,12 @@ typedef struct {
 
 enable_motor_request_t enable_motor_request;
 
+typedef struct {
+    double_t voltage[NB_MOTORS];
+    Mutex mutex;
+}voltage_motor_t;
+
+voltage_motor_t voltage_motor;
 
 typedef struct {
     uint8_t state[NB_MOTORS];
@@ -160,6 +172,7 @@ typedef struct {
 }motor_failure_state_t;
 
 motor_failure_state_t motor_failure_state;
+motor_failure_state_t motor_error_state;
 
 typedef struct {
     motor_state_t state[NB_MOTORS];
@@ -172,7 +185,6 @@ typedef struct {
     Mutex mutex;
 }current_battery_motors_t;
 current_battery_motors_t batt_state;
-
 
 Mutex mutexPWM;
 Mutex mutexStatusMotor;
