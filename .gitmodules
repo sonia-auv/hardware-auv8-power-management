@@ -1,0 +1,3 @@
+[submodule "include/hardware-utility"]
+	path = include/hardware-utility
+	url = git@github.com:sonia-auv/hardware-utility.git
