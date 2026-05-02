@@ -21,6 +21,10 @@ bool isKillSwitchActivated()
  return kill_input == KILL_ACTIVATION_STATUS;
 }
 
+void requestRefreshMotorControl(){
+    refreshMotorControl.release();
+}
+
 void receiveMotorEnableRequestCallback()
 {
     uint8_t cmd_array[1] = {CMD_ACT_MOTOR};
@@ -38,10 +42,13 @@ void receiveMotorEnableRequestCallback()
                 enable_motor_request.request[i] = receive[i] & 0x01;
             }
             enable_motor_request.mutex.unlock();
+            requestRefreshMotorControl();
 
         }
     }
 }
+
+
 
 void readMotorStatusCallback()
 {
@@ -52,6 +59,7 @@ void readMotorStatusCallback()
     uint8_t motor_failure_state_cpy[NB_MOTORS] = {0};
     uint8_t enable_motor_resquest_cpy[NB_MOTORS] = {0};
     uint8_t nb_motor_error_detected[NB_MOTORS] = {0};
+    bool update_motor_control = false;
     double_t voltage_motor_copy[NB_MOTORS] = {0};
 
     while(true)
@@ -70,13 +78,13 @@ void readMotorStatusCallback()
         motor_failure_state.mutex.lock();
         for(uint8_t i = 0; i < NB_MOTORS; ++i)
         {
-            motor_failure_state.state[i] = ~(status_motor[i]) & 0x01;
+            motor_failure_state.state[i] = ~(*(status_motor[i])) & 0x01;
             motor_failure_state_cpy[i] = motor_failure_state.state[i]; 
         }
         motor_failure_state.mutex.unlock();
 
         // get motor error state and set message
-        motor_error_state.mutex.lock();
+        
         for(uint8_t i = 0; i < NB_MOTORS; ++i)
         {
             if(motor_failure_state_cpy[i] != 1)
@@ -98,12 +106,23 @@ void readMotorStatusCallback()
                 }
                 else
                 {
-                    motor_error_state.state[i] = 0x00;
+                    motor_error_state_cpy[i] = 0x00;
                 }
-                motor_error_state_cpy[i] = motor_error_state.state[i];
             }
         }
+        motor_error_state.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; ++i)
+        {
+            if( motor_error_state.state[i] != motor_error_state_cpy[i])
+            {
+                motor_error_state.state[i] =motor_error_state_cpy[i];
+            }            
+        }
         motor_error_state.mutex.unlock();
+
+        if(update_motor_control){
+            requestRefreshMotorControl();
+        }
 
         //if a motor is in a failure/error state, we deactivate it. The user will
         //have to renable it explicitly (to test without)
@@ -140,6 +159,9 @@ void motorControllerCallback()
 
     while(true)
     {
+        //wait for refresh request
+        refreshMotorControl.acquire();
+
         //set pwm to neutral if kill switch activated
         if(isKillSwitchActivated()){
             //note pwmControllerCallback all ready check if the kill is
@@ -152,9 +174,7 @@ void motorControllerCallback()
         }
 
         //get failure status of all motor
-        motor_failure_state.mutex.lock();
-        for(uint8_t i = 0; i < NB_MOTORS; i++){ failure_status_motor[i] = motor_failure_state.state[i];}
-        motor_failure_state.mutex.unlock();
+        for(uint8_t i = 0; i < NB_MOTORS; i++){ failure_status_motor[i] = ~(*(status_motor[i])) & 0x01;}
 
         // get error status of all motor
         motor_error_state.mutex.lock();
@@ -172,17 +192,19 @@ void motorControllerCallback()
             if(isKillSwitchActivated())
             {
                 enable_motor[i] = 0;
-                motor_state_copy[i] = (enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF;
+                motor_state_copy[i] = MOTOR_OFF;
+                enable_motor_request_copy[i] = 0;
             }
             else if(failure_status_motor[i] == 1)
             {
                 motor_state_copy[i] = MOTOR_FAILURE;
-                enable_motor[i] = 0;//(enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF; (to test)
+                enable_motor[i] = 0;
             }
             else if(error_status_motor[i] == 1)
             {
                 motor_state_copy[i] = MOTOR_ERROR;
-                enable_motor[i] = 0; //(enable_motor_request_copy[i]) ? MOTOR_ON : MOTOR_OFF; (to test)
+                enable_motor[i] = 0;
+
             }
             else
             {
@@ -195,7 +217,9 @@ void motorControllerCallback()
         for(int i=0; i<NB_MOTORS; i++) { motor_state.state[i] = motor_state_copy[i];}
         motor_state.mutex.unlock();
 
-        ThisThread::sleep_for(500);
+        enable_motor_request.mutex.lock();
+        for(uint8_t i = 0; i < NB_MOTORS; i++){ enable_motor_request.request[i] = enable_motor_request_copy[i];}
+        enable_motor_request.mutex.unlock();
     }
 }
 
@@ -437,13 +461,19 @@ int main()
     yellow_tristate = 0;
     green_tristate = 0;
 
+    kill_enable = 1;
+
+
     for(uint8_t i = 0; i < NB_MOTORS; ++i)
     {
         pwm[i].period_us(2000);
         pwm[i].pulsewidth_us(applyCalibration(NEUTRAL_PWM));
         enable_motor_request.request[i] = 0;
         motor_failure_state.state[i] = 0;
+        motor_state.state[i] = MOTOR_OFF;
+        enable_motor[i] = 0;
     }
+
 
     for(uint8_t i = 0; i < NB_FAN; ++i)
     {
@@ -477,6 +507,22 @@ int main()
     yellow_tristate = 1;
     green_tristate = 0;
 
+    for(uint8_t i=0; i<NB_MOTORS; i++){
+        (*(status_motor[i])).rise(&requestRefreshMotorControl);
+        (*(status_motor[i])).fall(&requestRefreshMotorControl);
+    }
+    kill_input.rise(&requestRefreshMotorControl);
+    kill_input.fall(&requestRefreshMotorControl);
+
+    enable_motor[0] = 0;
+    enable_motor[1] = 0;
+    enable_motor[2] = 0;
+    enable_motor[3] = 0;
+    enable_motor[4] = 0;
+    enable_motor[5] = 0;
+    enable_motor[6] = 0;
+    enable_motor[7] = 0;
+    
     readSensor.start(readSensorCallback);
     readSensor.set_priority(osPriorityHigh2);
 

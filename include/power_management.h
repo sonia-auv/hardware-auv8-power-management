@@ -78,8 +78,8 @@ typedef enum{
 
 PwmOut pwm[NB_MOTORS] = {PwmOut(PWM1), PwmOut(PWM2), PwmOut(PWM3), PwmOut(MISO_PWM4), 
     PwmOut(PWM5), PwmOut(PWM6), PwmOut(PWM7), PwmOut(PWM8)};
-
-DigitalOut enable_motor[NB_MOTORS] = {DigitalOut(MTR1), DigitalOut(A0), DigitalOut(MTR3), DigitalOut(MTR4), 
+#warning "WARNING: check pin assign to motor 2 (PD_9 for AUV7/lite, A0 for AUV8)"
+DigitalOut enable_motor[NB_MOTORS] = {DigitalOut(MTR1), DigitalOut(MTR2), DigitalOut(MTR3), DigitalOut(MTR4), 
     DigitalOut(MTR5), DigitalOut(MTR6), DigitalOut(MTR7), DigitalOut(MTR8)};
 
 //DigitalOut cs_address[NB_CS_ADRESS] = {DigitalOut(A0), DigitalOut(A1), DigitalOut(A2), DigitalOut(A3)};
@@ -101,8 +101,26 @@ DigitalOut green_tristate(GREEN_TRISTATE);
 DigitalOut sd_led(SD_LED);
 DigitalOut kill_led(KILL_LED);
 
-DigitalIn status_motor[NB_MOTORS] = {DigitalIn(STATUS1), DigitalIn(STATUS2), DigitalIn(STATUS3), DigitalIn(STATUS4),
-    DigitalIn(STATUS5), DigitalIn(STATUS6), DigitalIn(STATUS7), DigitalIn(STATUS8)}; // 0 = fault, 1 = nominal
+InterruptIn statusMotor1(STATUS1);
+InterruptIn statusMotor2(STATUS2);
+InterruptIn statusMotor3(STATUS3);
+InterruptIn statusMotor4(STATUS4);
+InterruptIn statusMotor5(STATUS5);
+InterruptIn statusMotor6(STATUS6);
+InterruptIn statusMotor7(STATUS7);
+InterruptIn statusMotor8(STATUS8);
+
+InterruptIn* status_motor[NB_MOTORS] = {
+    &statusMotor1,
+    &statusMotor2,
+    &statusMotor3,
+    &statusMotor4,
+    &statusMotor5,
+    &statusMotor6,
+    &statusMotor7,
+    &statusMotor8
+}; // 0 = fault, 1 = nominal
+
 
 DigitalIn alert[NB_MOTORS + NB_12V] = {DigitalIn(ALERT1), DigitalIn(ALERT2), DigitalIn(ALERT3), DigitalIn(ALERT4),
     DigitalIn(ALERT5), DigitalIn(ALERT6), DigitalIn(ALERT7), DigitalIn(ALERT8), DigitalIn(ALERT9),
@@ -110,7 +128,7 @@ DigitalIn alert[NB_MOTORS + NB_12V] = {DigitalIn(ALERT1), DigitalIn(ALERT2), Dig
 
 DigitalIn send_sd_rs(SEND_SD_RS);
 DigitalIn send_to_sd(SEND_TO_SD);
-DigitalIn kill_input(KILL_3V3);
+InterruptIn kill_input(KILL_3V3);
 DigitalIn pwm_stop(PWM_STOP);
 
 //###################################################
@@ -190,6 +208,7 @@ Mutex mutexPWM;
 Mutex mutexStatusMotor;
 Mutex mutexEnableMotorRequest;
 Mutex mutexMotorState;
+Semaphore refreshMotorControl(0);
 
 //###################################################
 //             FUNCTIONS DEFINITION
