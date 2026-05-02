@@ -1,3 +1,6 @@
 [submodule "mbed-os"]
 	path = mbed-os
 	url = https://github.com/ARMmbed/mbed-os.git
+[submodule "include/hardware-utility"]
+	path = include/hardware-utility
+	url = https://github.com/sonia-auv/hardware-utility.git
