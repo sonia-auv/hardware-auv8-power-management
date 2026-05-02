@@ -50,6 +50,8 @@
 #define MTR8 PD_6
 #define STATUS8 PD_7
 #define ALERT6 PD_8
+
+#warning "WARNING: check pin assign to motor 2 (PD_9 for AUV7/lite, A0 for AUV8)"
 #define MTR2 PD_9
 #define STATUS2 PD_10
 #define ALERT2 PD_11
